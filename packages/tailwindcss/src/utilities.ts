@@ -2812,6 +2812,15 @@ export function createUtilities(theme: Theme) {
   staticUtility('mask-match', [['mask-mode', 'match-source']])
 
   /**
+   * @css `mask-type`
+   *
+   * Sets the "mode" of the current `<mask>` element
+   * Is overridden by `mask-mode` if used
+   */
+  staticUtility('mask-type-alpha', [['mask-type', 'alpha']])
+  staticUtility('mask-type-luminance', [['mask-type', 'luminance']])
+
+  /**
    * @css `box-decoration-break`
    */
   staticUtility('box-decoration-slice', [
