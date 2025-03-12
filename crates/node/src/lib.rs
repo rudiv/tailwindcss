@@ -41,20 +41,14 @@ pub struct SourceEntry {
   pub negated: bool,
 }
 
-impl From<ChangedContent> for tailwindcss_oxide::ChangedContent<'_> {
+impl From<ChangedContent> for tailwindcss_oxide::ChangedContent {
   fn from(changed_content: ChangedContent) -> Self {
     if let Some(file) = changed_content.file {
-      return tailwindcss_oxide::ChangedContent::File(
-        file.into(),
-        changed_content.extension.into(),
-      );
+      return tailwindcss_oxide::ChangedContent::File(file.into(), changed_content.extension);
     }
 
     if let Some(contents) = changed_content.content {
-      return tailwindcss_oxide::ChangedContent::Content(
-        contents,
-        changed_content.extension.into(),
-      );
+      return tailwindcss_oxide::ChangedContent::Content(contents, changed_content.extension);
     }
 
     unreachable!()
@@ -79,18 +73,8 @@ impl From<tailwindcss_oxide::GlobEntry> for GlobEntry {
   }
 }
 
-impl From<SourceEntry> for tailwindcss_oxide::SourceEntry {
+impl From<SourceEntry> for tailwindcss_oxide::PublicSourceEntry {
   fn from(source: SourceEntry) -> Self {
-    Self {
-      base: source.base,
-      pattern: source.pattern,
-      negated: source.negated,
-    }
-  }
-}
-
-impl From<tailwindcss_oxide::SourceEntry> for SourceEntry {
-  fn from(source: tailwindcss_oxide::SourceEntry) -> Self {
     Self {
       base: source.base,
       pattern: source.pattern,
@@ -105,7 +89,7 @@ impl From<tailwindcss_oxide::SourceEntry> for SourceEntry {
 #[napi(object)]
 pub struct ScannerOptions {
   /// Glob sources
-  pub sources: Option<Vec<GlobEntry>>,
+  pub sources: Option<Vec<SourceEntry>>,
 }
 
 #[derive(Debug, Clone)]
@@ -129,11 +113,10 @@ impl Scanner {
   #[napi(constructor)]
   pub fn new(opts: ScannerOptions) -> Self {
     Self {
-      scanner: tailwindcss_oxide::Scanner::new(
-        opts
-          .sources
-          .map(|x| x.into_iter().map(Into::into).collect()),
-      ),
+      scanner: tailwindcss_oxide::Scanner::new(match opts.sources {
+        Some(sources) => sources.into_iter().map(Into::into).collect(),
+        None => vec![],
+      }),
     }
   }
 
