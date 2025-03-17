@@ -86,6 +86,7 @@ pub fn optimize_public_source_entry(source: &mut PublicSourceEntry) {
         None => base,
     };
 
+    // TODO: If the base does not exist on disk, try removing the last slash and try again.
     let base = match dunce::canonicalize(&base) {
         Ok(base) => base,
         Err(err) => {

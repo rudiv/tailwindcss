@@ -837,6 +837,33 @@ mod scanner {
     }
 
     #[test]
+    fn test_works_with_filenames_containing_glob_characters() {
+        // Create a temporary working directory
+        let dir = tempdir().unwrap().into_path();
+
+        // Create files
+        create_files_in(
+            &dir,
+            &[
+                ("src/app/[foo]/ignore-me.html", "content-['ignore-me.html']"),
+                ("src/app/[foo]/keep-me.html", "content-['keep-me.html']"),
+            ],
+        );
+
+        let sources = vec![
+            PublicSourceEntry::from_pattern(dir.clone(), "@source '**/*'"),
+            PublicSourceEntry::from_pattern(
+                dir.clone(),
+                "@source not 'src/app/[foo]/ignore*.html'",
+            ),
+        ];
+
+        let candidates = Scanner::new(sources.clone()).scan();
+
+        assert_eq!(candidates, vec!["content-['keep-me.html']"]);
+    }
+
+    #[test]
     fn test_foo_bar() {
         // Create a temporary working directory
         let dir = tempdir().unwrap().into_path();
