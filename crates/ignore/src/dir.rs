@@ -496,12 +496,39 @@ impl Ignore {
             Match::None
         };
 
-        m_custom_ignore
-            .or(m_ignore)
-            .or(m_gi)
-            .or(m_gi_exclude)
-            .or(m_global)
-            .or(m_explicit)
+        let order = [
+            // Global gitignore
+            &m_global,
+            // .git/info/exclude
+            &m_gi_exclude,
+            // .gitignore
+            &m_gi,
+            // .ignore
+            &m_ignore,
+            // .customignore
+            &m_custom_ignore,
+            // Manually added ignores
+            &m_explicit,
+        ];
+
+        for (idx, check) in order.into_iter().enumerate() {
+            if check.is_none() {
+                continue;
+            }
+
+            let remaining = &order[idx + 1..];
+            if check.is_ignore() {
+                if remaining.iter().any(|other| other.is_whitelist()) {
+                    continue;
+                }
+            } else if remaining.iter().any(|other| other.is_ignore()) {
+                continue;
+            }
+
+            return check.clone();
+        }
+
+        m_explicit
     }
 
     /// Returns an iterator over parent ignore matchers, including this one.

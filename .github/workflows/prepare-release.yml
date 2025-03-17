@@ -119,9 +119,7 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: Install dependencies
-        run: |
-          pnpm install --ignore-scripts --filter=!./playgrounds/*
-          pnpm postinstall
+        run: pnpm install --ignore-scripts --filter=!./playgrounds/*
 
       - name: Build release
         run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
@@ -168,7 +166,6 @@ jobs:
             ./rustup-init -y --profile minimal
             source "$HOME/.cargo/env"
             pnpm install --ignore-scripts --filter=!./playgrounds/* || true
-            pnpm postinstall
             echo "~~~~ rustc --version ~~~~"
             rustc --version
             echo "~~~~ node -v ~~~~"
