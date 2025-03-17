@@ -118,7 +118,9 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: Install dependencies
-        run: pnpm install --ignore-scripts --filter=!./playgrounds/*
+        run: |
+          pnpm install --ignore-scripts --filter=!./playgrounds/*
+          pnpm postinstall
 
       - name: Build release
         run: pnpm run --filter ${{ env.OXIDE_LOCATION }} build
@@ -171,6 +173,7 @@ jobs:
             echo "~~~~ pnpm --version ~~~~"
             pnpm --version
             pnpm install --ignore-scripts --filter=!./playgrounds/* || true
+            pnpm postinstall
             pnpm run --filter ${{ env.OXIDE_LOCATION }} build
             strip -x ${{ env.OXIDE_LOCATION }}/*.node
             ls -la ${{ env.OXIDE_LOCATION }}
