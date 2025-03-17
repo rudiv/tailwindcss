@@ -45,7 +45,7 @@
     "version-packages": "node ./scripts/version-packages.mjs",
     "vite": "pnpm run --filter=vite-playground dev",
     "nextjs": "pnpm run --filter=nextjs-playground dev",
-    "postinstall": "cargo install patch-crate && cargo patch-crate"
+    "postinstall": "cargo install patch-crate; cargo patch-crate"
   },
   "license": "MIT",
   "devDependencies": {
