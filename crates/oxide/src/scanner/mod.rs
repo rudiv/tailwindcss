@@ -441,6 +441,7 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
                 Some(pattern) => format!("!{}", pattern),
                 None => pattern,
             };
+            dbg!(&base, &absolute_pattern);
             ignore_builder.add_line(None, &absolute_pattern).unwrap();
         }
         let ignore = ignore_builder.build().unwrap();
