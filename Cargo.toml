@@ -5,5 +5,3 @@ members = ["crates/*"]
 [profile.release]
 lto = true
 
-[patch.crates-io]
-ignore = { path = "./target/patch/ignore-0.4.23" }
