@@ -432,14 +432,14 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
 
     // Setup ignores based on `@source` definitions
     for (base, patterns) in ignores {
-        let mut ignore_builder = GitignoreBuilder::new("");
+        let mut ignore_builder = GitignoreBuilder::new(base);
         for pattern in patterns {
             // So... we have to combine patterns with the base path and make them absolute. For
             // some reason this is not handled by the `ignore` crate. (I'm pretty sure we might
             // be doing something wrong as well. But this solves it, for now.)
             let absolute_pattern = match pattern.strip_prefix("!") {
-                Some(pattern) => format!("!{}/{}", base.to_string_lossy().replace('\\', "/"), pattern),
-                None => format!("{}/{}", base.to_string_lossy().replace('\\', "/"), pattern),
+                Some(pattern) => format!("!{}", pattern),
+                None => pattern,
             };
             ignore_builder.add_line(None, &absolute_pattern).unwrap();
         }
