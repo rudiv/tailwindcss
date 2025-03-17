@@ -438,8 +438,8 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
             // some reason this is not handled by the `ignore` crate. (I'm pretty sure we might
             // be doing something wrong as well. But this solves it, for now.)
             let absolute_pattern = match pattern.strip_prefix("!") {
-                Some(pattern) => format!("!{}/{}", base.to_string_lossy(), pattern),
-                None => format!("{}/{}", base.to_string_lossy(), pattern),
+                Some(pattern) => format!("!{}/{}", base.to_string_lossy().replace('\\', "/"), pattern),
+                None => format!("{}/{}", base.to_string_lossy().replace('\\', "/"), pattern),
             };
             ignore_builder.add_line(None, &absolute_pattern).unwrap();
         }
