@@ -754,6 +754,34 @@ mod scanner {
         );
     }
 
+    // #[test]
+    // fn it_should_work() {
+    //     let ScanResult {
+    //         candidates,
+    //         files,
+    //         globs,
+    //     } = scan_with_globs(
+    //         // Typically skipped
+    //         &[(
+    //             "src/node_modules/index.html",
+    //             "content-['src/node_modules/index.html']",
+    //         )],
+    //         // But explicitly included
+    //         vec!["@source 'src/node_modules/*.html'"],
+    //     );
+    //
+    //     assert_eq!(candidates, vec!["content-['src/index.exe']",]);
+    //     assert_eq!(files, vec!["src/index.exe",]);
+    //     assert_eq!(
+    //         globs,
+    //         vec![
+    //             "*",
+    //             // Contains `.exe` in the list
+    //             "src/**/*.{aspx,astro,cjs,cts,eex,erb,exe,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}",
+    //         ]
+    //     );
+    // }
+
     #[test]
     fn skips_ignore_files_outside_of_a_repo() {
         // Create a temporary working directory
@@ -787,21 +815,54 @@ mod scanner {
                     "home/project/apps/web/ignore-web.html",
                     "content-['ignore-web.html']",
                 ),
+                // Auto content detection outside of `web/`
+                (
+                    "home/project/apps/admin/index.html",
+                    "content-['home/project/apps/admin/index.html']",
+                ),
+                // Manual sources outside of `web/`
+                (
+                    "home/project/apps/dashboard/index.html",
+                    "content-['home/project/apps/dashboard/index.html']",
+                ),
             ],
         );
 
-        let sources = vec![PublicSourceEntry::from_pattern(
-            dir.join("home/project/apps/web")
-                .to_string_lossy()
-                .to_string()
-                .into(),
-            "@source '**/*'",
-        )];
+        let sources = vec![
+            PublicSourceEntry::from_pattern(
+                dir.join("home/project/apps/web")
+                    .to_string_lossy()
+                    .to_string()
+                    .into(),
+                "@source '**/*'",
+            ),
+            PublicSourceEntry::from_pattern(
+                dir.join("home/project/apps/web")
+                    .to_string_lossy()
+                    .to_string()
+                    .into(),
+                "@source '../admin'",
+            ),
+            PublicSourceEntry::from_pattern(
+                dir.join("home/project/apps/web")
+                    .to_string_lossy()
+                    .to_string()
+                    .into(),
+                "@source '../dashboard/*.html'",
+            ),
+        ];
 
         let candidates = Scanner::new(sources.clone()).scan();
 
         // All ignore files are applied because there's no git repo
-        assert_eq!(candidates, vec!["content-['index.html']".to_owned(),]);
+        assert_eq!(
+            candidates,
+            vec![
+                "content-['home/project/apps/admin/index.html']",
+                "content-['home/project/apps/dashboard/index.html']",
+                "content-['index.html']"
+            ]
+        );
 
         // Initialize `home` as a git repository and scan again
         // The results should be the same as before
@@ -811,7 +872,14 @@ mod scanner {
             .output();
         let candidates = Scanner::new(sources.clone()).scan();
 
-        assert_eq!(candidates, vec!["content-['index.html']".to_owned(),]);
+        assert_eq!(
+            candidates,
+            vec![
+                "content-['home/project/apps/admin/index.html']",
+                "content-['home/project/apps/dashboard/index.html']",
+                "content-['index.html']"
+            ]
+        );
 
         // Drop the .git folder
         fs::remove_dir_all(dir.join("home/.git")).unwrap();
@@ -826,8 +894,10 @@ mod scanner {
         assert_eq!(
             candidates,
             vec![
-                "content-['ignore-home.html']".to_owned(),
-                "content-['index.html']".to_owned(),
+                "content-['home/project/apps/admin/index.html']",
+                "content-['home/project/apps/dashboard/index.html']",
+                "content-['ignore-home.html']",
+                "content-['index.html']"
             ]
         );
 
@@ -844,9 +914,11 @@ mod scanner {
         assert_eq!(
             candidates,
             vec![
-                "content-['ignore-home.html']".to_owned(),
-                "content-['ignore-project.html']".to_owned(),
-                "content-['index.html']".to_owned(),
+                "content-['home/project/apps/admin/index.html']",
+                "content-['home/project/apps/dashboard/index.html']",
+                "content-['ignore-home.html']",
+                "content-['ignore-project.html']",
+                "content-['index.html']"
             ]
         );
 
@@ -858,17 +930,21 @@ mod scanner {
             .arg("init")
             .current_dir(dir.join("home/project/apps/web"))
             .output();
+
         let candidates = Scanner::new(sources.clone()).scan();
 
         assert_eq!(
             candidates,
             vec![
-                "content-['ignore-apps.html']".to_owned(),
-                "content-['ignore-home.html']".to_owned(),
-                "content-['ignore-project.html']".to_owned(),
-                "content-['index.html']".to_owned(),
+                "content-['home/project/apps/admin/index.html']",
+                "content-['home/project/apps/dashboard/index.html']",
+                "content-['ignore-apps.html']",
+                "content-['ignore-home.html']",
+                "content-['ignore-project.html']",
+                "content-['index.html']",
             ]
         );
+        todo!()
     }
 
     #[test]
