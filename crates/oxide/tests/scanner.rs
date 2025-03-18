@@ -866,7 +866,7 @@ mod scanner {
     }
 
     #[test]
-    fn test_foo_bar() {
+    fn test_ignore_files_can_be_included_with_custom_source_rule() {
         // Create a temporary working directory
         let dir = tempdir().unwrap().into_path();
 
@@ -876,15 +876,13 @@ mod scanner {
             &[("src/keep-me.html", "content-['src/keep-me.html']")],
         );
 
-        let sources = vec![
+        let mut scanner = Scanner::new(vec![
             PublicSourceEntry::from_pattern(dir.clone(), "@source '**/*.html'"),
             PublicSourceEntry::from_pattern(
                 dir.clone(),
                 "@source not 'src/ignored-by-source-not.html'",
             ),
-        ];
-
-        let mut scanner = Scanner::new(sources.clone());
+        ]);
 
         let candidates = scanner.scan();
         assert_eq!(candidates, vec!["content-['src/keep-me.html']"]);
@@ -914,8 +912,6 @@ mod scanner {
             ],
         );
 
-        // TODO: Drop this again
-        let mut scanner = Scanner::new(sources.clone());
         let candidates = scanner.scan();
 
         assert_eq!(
@@ -948,12 +944,10 @@ mod scanner {
         assert!(candidates.is_empty());
 
         // Explicitly allow `.styl` files
-        let sources = vec![
+        let mut scanner = Scanner::new(vec![
             PublicSourceEntry::from_pattern(dir.clone(), "@source '**/*'"),
             PublicSourceEntry::from_pattern(dir.clone(), "@source '*.styl'"),
-        ];
-
-        let mut scanner = Scanner::new(sources.clone());
+        ]);
 
         let candidates = scanner.scan();
         assert_eq!(candidates, vec!["content-['foo.styl']"]);
@@ -973,22 +967,18 @@ mod scanner {
             ],
         );
 
-        let sources = vec![PublicSourceEntry::from_pattern(
+        let mut scanner = Scanner::new(vec![PublicSourceEntry::from_pattern(
             dir.clone(),
             "@source '**/*'",
-        )];
-
-        let mut scanner = Scanner::new(sources.clone());
+        )]);
 
         let candidates = scanner.scan();
         assert!(candidates.is_empty());
 
-        let sources = vec![
+        let mut scanner = Scanner::new(vec![
             PublicSourceEntry::from_pattern(dir.clone(), "@source '**/*'"),
             PublicSourceEntry::from_pattern(dir.clone(), "@source './*.html'"),
-        ];
-
-        let mut scanner = Scanner::new(sources.clone());
+        ]);
 
         let candidates = scanner.scan();
         assert_eq!(candidates, vec!["content-['index.html']"]);
