@@ -339,6 +339,7 @@ fn parse_all_blobs(blobs: Vec<Vec<u8>>) -> Vec<String> {
 fn create_walker(sources: Sources) -> Option<WalkBuilder> {
     let mtimes: Arc<Mutex<FxHashMap<PathBuf, SystemTime>>> = Default::default();
     let mut roots: FxHashSet<&PathBuf> = FxHashSet::default();
+    let mut first_root: Option<&PathBuf> = None;
     let mut ignores: BTreeMap<&PathBuf, BTreeSet<String>> = Default::default();
 
     let mut auto_content_roots = FxHashSet::default();
@@ -347,12 +348,18 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
         match source {
             SourceEntry::Auto { base } => {
                 auto_content_roots.insert(base);
+                if first_root.is_none() {
+                    first_root = Some(base);
+                }
                 roots.insert(base);
             }
             SourceEntry::IgnoredAuto { base } => {
                 ignores.entry(base).or_default().insert("**/*".to_string());
             }
             SourceEntry::Pattern { base, pattern } => {
+                if first_root.is_none() {
+                    first_root = Some(base);
+                }
                 roots.insert(base);
                 ignores
                     .entry(base)
@@ -366,9 +373,8 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
     }
 
     let mut roots = roots.into_iter();
-    let first_root = roots.next()?;
 
-    let mut builder = WalkBuilder::new(first_root);
+    let mut builder = WalkBuilder::new(first_root?);
 
     // Scan hidden files / directories
     builder.hidden(false);
@@ -411,7 +417,7 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
     // - my-project/apps/.gitignore
     //
     // Setting the require_git(true) flag conditionally allows us to do this.
-    for parent in first_root.ancestors() {
+    for parent in first_root?.ancestors() {
         if parent.join(".git").exists() {
             builder.require_git(true);
             break;

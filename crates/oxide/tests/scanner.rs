@@ -944,7 +944,6 @@ mod scanner {
                 "content-['index.html']",
             ]
         );
-        todo!()
     }
 
     #[test]
