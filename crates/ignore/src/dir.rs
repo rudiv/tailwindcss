@@ -482,6 +482,18 @@ impl Ignore {
             }
         }
         for gi in self.0.explicit_ignores.iter().rev() {
+            // CHANGED: We need to make sure that the explicit gitignore rules apply to the path
+            //
+            //          path      = Is the current file/folder we are traversing
+            //          gi.path() = Is the path of the custom gitignore file
+            //
+            //  E.g.: If we have a custom rule for `/src/utils` with `**/*`, and we are looking at
+            //        just `/src`, then the `**/*` rules do not apply to this folder, so we can
+            //        ignore the current custom gitignore file.
+            //
+            if !path.starts_with(gi.path()) {
+                continue;
+            }
             if !m_explicit.is_none() {
                 break;
             }
