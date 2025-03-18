@@ -109,10 +109,7 @@ impl Scanner {
 
     pub fn scan(&mut self) -> Vec<String> {
         init_tracing();
-
-        let start = std::time::Instant::now();
         self.scan_sources();
-        eprintln!("Scanned sources in {:?}", start.elapsed());
 
         // TODO: performance improvement, bail early if we don't have any changed content
         // if self.changed_content.is_empty() {
