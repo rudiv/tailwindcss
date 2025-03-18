@@ -234,6 +234,14 @@ mod scanner {
     }
 
     #[test]
+    fn it_should_find_new_extensions() {
+        let ScanResult { files, globs, .. } = scan(&[("src/index.my-extension", "")]);
+
+        assert_eq!(files, vec!["src/index.my-extension"]);
+        assert_eq!(globs, vec!["*", "src/**/*.{aspx,astro,cjs,cts,eex,erb,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,my-extension,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}"]);
+    }
+
+    #[test]
     fn it_should_ignore_known_files() {
         let ScanResult { files, globs, .. } = scan(&[
             ("index.html", ""),

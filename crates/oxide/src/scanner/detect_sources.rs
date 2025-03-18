@@ -27,12 +27,17 @@ fn sort_by_dir_and_name(a: &DirEntry, z: &DirEntry) -> Ordering {
     }
 }
 
-pub fn resolve_globs(base: PathBuf, dirs: &[PathBuf]) -> Vec<GlobEntry> {
+pub fn resolve_globs(
+    base: PathBuf,
+    dirs: &[PathBuf],
+    extensions: &FxHashSet<String>,
+) -> Vec<GlobEntry> {
     let allowed_paths: FxHashSet<PathBuf> = FxHashSet::from_iter(dirs.iter().cloned());
 
     // A list of known extensions + a list of extensions we found in the project.
-    let found_extensions: FxHashSet<String> =
+    let mut found_extensions: FxHashSet<String> =
         FxHashSet::from_iter(KNOWN_EXTENSIONS.iter().map(|x| x.to_string()));
+    found_extensions.extend(extensions.iter().cloned());
 
     // A list of directory names where we can't use globs, but we should track each file
     // individually instead. This is because these directories are often used for both source and

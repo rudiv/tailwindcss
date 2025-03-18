@@ -80,6 +80,9 @@ pub struct Scanner {
     /// All changed content that we have to parse
     changed_content: Vec<ChangedContent>,
 
+    /// All found extensions
+    extensions: FxHashSet<String>,
+
     /// All files that we have to scan
     files: Vec<PathBuf>,
 
@@ -165,6 +168,7 @@ impl Scanner {
                     .and_then(|x| x.to_str())
                     .unwrap_or_default(); // In case the file has no extension
 
+                self.extensions.insert(extension.to_owned());
                 self.changed_content.push(ChangedContent::File(
                     path.to_path_buf(),
                     extension.to_owned(),
@@ -193,7 +197,7 @@ impl Scanner {
             // TODO: Make sure `SourceEntry::IgnoredAuto` is ignored maybe?
             // TODO: Make sure `SourceEntry::Pattern` is included maybe?
             if let SourceEntry::Auto { base } = source {
-                let globs = resolve_globs((base).to_path_buf(), &self.dirs);
+                let globs = resolve_globs((base).to_path_buf(), &self.dirs, &self.extensions);
                 self.globs.extend(globs);
             }
         }
