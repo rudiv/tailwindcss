@@ -705,15 +705,16 @@ mod scanner {
             files,
             vec![
                 "src/admin/foo/template.html",
-                "src/templates/index.html" // These files are ignored and thus do not need to be watched:
+                "src/templates/index.html",
+                // These files are ignored and thus do not need to be watched:
 
-                                           // "src/colors/blue.tsx",
-                                           // "src/colors/green.tsx",
-                                           // "src/colors/red.jsx",
-                                           // "src/index.ts",
-                                           // "src/utils/date.ts",
-                                           // "src/utils/file.ts",
-                                           // "src/utils/string.ts"
+                // "src/colors/blue.tsx",
+                // "src/colors/green.tsx",
+                // "src/colors/red.jsx",
+                // "src/index.ts",
+                // "src/utils/date.ts",
+                // "src/utils/file.ts",
+                // "src/utils/string.ts"
             ]
         );
         assert_eq!(
