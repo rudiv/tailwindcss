@@ -730,6 +730,31 @@ mod scanner {
     }
 
     #[test]
+    fn it_should_include_explicitly_defined_extensions_that_are_ignored_by_default() {
+        let ScanResult {
+            candidates,
+            files,
+            globs,
+        } = scan_with_globs(
+            // Typically skipped
+            &[("src/index.exe", "content-['src/index.exe']")],
+            // But explicitly included
+            vec!["@source '**/*.exe'"],
+        );
+
+        assert_eq!(candidates, vec!["content-['src/index.exe']",]);
+        assert_eq!(files, vec!["src/index.exe",]);
+        assert_eq!(
+            globs,
+            vec![
+                "*",
+                // Contains `.exe` in the list
+                "src/**/*.{aspx,astro,cjs,cts,eex,erb,exe,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}",
+            ]
+        );
+    }
+
+    #[test]
     fn skips_ignore_files_outside_of_a_repo() {
         // Create a temporary working directory
         let dir = tempdir().unwrap().into_path();
