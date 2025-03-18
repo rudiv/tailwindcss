@@ -125,6 +125,8 @@ mod scanner {
             ("public/a.html", ""),
             ("public/b.html", ""),
             ("public/c.html", ""),
+            ("public/nested/c.html", ""),
+            ("public/deeply/nested/c.html", ""),
         ]);
 
         assert_eq!(
@@ -134,6 +136,8 @@ mod scanner {
                 "public/a.html",
                 "public/b.html",
                 "public/c.html",
+                "public/deeply/nested/c.html",
+                "public/nested/c.html",
             ]
         );
         assert_eq!(globs, vec!["*"]);
