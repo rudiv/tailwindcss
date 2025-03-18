@@ -25,7 +25,7 @@ pub fn resolve_globs(base: PathBuf, dirs: &Vec<PathBuf>) -> Vec<GlobEntry> {
     let mut forced_static_directories = vec![base.join("public")];
 
     // A list of known extensions + a list of extensions we found in the project.
-    let mut found_extensions = FxHashSet::from_iter(KNOWN_EXTENSIONS.iter().map(|x| x.to_string()));
+    let found_extensions = FxHashSet::from_iter(KNOWN_EXTENSIONS.iter().map(|x| x.to_string()));
 
     // All root directories.
     let mut root_directories = FxHashSet::from_iter(vec![base.clone()]);

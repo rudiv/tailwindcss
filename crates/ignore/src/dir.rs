@@ -914,9 +914,10 @@ mod tests {
             .build()
             .add_child(td.path());
         assert!(err.is_none());
-        assert!(ig.matched("foo", false).is_ignore());
-        assert!(ig.matched("bar", false).is_whitelist());
-        assert!(ig.matched("baz", false).is_none());
+        assert!(ig.matched(td.path().join("foo"), false).is_ignore());
+        assert!(ig.matched(td.path().join("bar"), false).is_whitelist());
+        assert!(ig.matched(td.path().join("baz"), false).is_none());
+        assert!(ig.matched("/foo", false).is_none());
     }
 
     #[test]
