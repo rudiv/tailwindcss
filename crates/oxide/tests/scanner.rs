@@ -674,21 +674,26 @@ mod scanner {
             paths,
             vec![
                 "*",
-                // TODO: We have ignored all files inside `./dist` so this glob does not need to be created
-                // "dist/**/*.{aspx,astro,cjs,cts,eex,erb,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}",
-                "dist/out.html",
+                "src/*/*.{aspx,astro,cjs,cts,eex,erb,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}",
 
                 // TODO: This is now missing `src/colors/**/*`` and `src/admin/**/*`
-                "src/*/*.{aspx,astro,cjs,cts,eex,erb,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}",
+                "src/colors/**/*.{aspx,astro,cjs,cts,eex,erb,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}",
+                "src/admin/**/*.{aspx,astro,cjs,cts,eex,erb,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}",
+                "src/templates/**/*.{aspx,astro,cjs,cts,eex,erb,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}",
+
+                // Files that are not ignored:
                 "src/admin/foo/template.html",
-                "src/colors/blue.tsx",
-                "src/colors/green.tsx",
-                "src/colors/red.jsx",
-                "src/index.ts",
                 "src/templates/index.html",
-                "src/utils/date.ts",
-                "src/utils/file.ts",
-                "src/utils/string.ts"
+
+                // These files are ignored and thus do not need to be watched:
+                //
+                // "src/colors/blue.tsx",
+                // "src/colors/green.tsx",
+                // "src/colors/red.jsx",
+                // "src/index.ts",
+                // "src/utils/date.ts",
+                // "src/utils/file.ts",
+                // "src/utils/string.ts"
             ]
         );
     }
