@@ -1,5 +1,6 @@
 use crate::GlobEntry;
 use fxhash::FxHashSet;
+use globwalk::DirEntry;
 use std::cmp::Ordering;
 use std::path::PathBuf;
 use std::sync;
@@ -43,18 +44,20 @@ pub fn resolve_globs(base: PathBuf, dirs: &Vec<PathBuf>) -> Vec<GlobEntry> {
     // E.g.: `./src/*/*.{html,js}`
     let mut shallow_globable_directories: FxHashSet<PathBuf> = FxHashSet::default();
 
+    // Sorting to make sure that we always see the directories before the files. Also sorting
+    // alphabetically by default.
+    fn sort_by_dir_and_name(a: &DirEntry, z: &DirEntry) -> Ordering {
+        match (a.file_type().is_dir(), z.file_type().is_dir()) {
+            (true, false) => Ordering::Less,
+            (false, true) => Ordering::Greater,
+            _ => a.file_name().cmp(z.file_name()),
+        }
+    }
+
     // Collect all valid paths from the root. This will already filter out ignored files, unknown
     // extensions and binary files.
     let mut it = WalkDir::new(&base)
-        // Sorting to make sure that we always see the directories before the files. Also sorting
-        // alphabetically by default.
-        .sort_by(
-            |a, z| match (a.file_type().is_dir(), z.file_type().is_dir()) {
-                (true, false) => Ordering::Less,
-                (false, true) => Ordering::Greater,
-                _ => a.file_name().cmp(z.file_name()),
-            },
-        )
+        .sort_by(sort_by_dir_and_name)
         .into_iter();
 
     // We are only interested in valid entries
@@ -100,11 +103,30 @@ pub fn resolve_globs(base: PathBuf, dirs: &Vec<PathBuf>) -> Vec<GlobEntry> {
                     // If the parent is already marked as a valid deep glob directory, then we have
                     // to mark it as a shallow glob directory instead, because we won't be able to
                     // use deep globs for this directory anymore.
-                    //
-                    // TODO: All existing children should become deep globable.
                     if deep_globable_directories.contains(parent_path) {
                         deep_globable_directories.remove(parent_path);
                         shallow_globable_directories.insert(parent_path.to_path_buf());
+
+                        // Re-scan the children of the given directory so we can add them as deep
+                        // globable directories.
+                        let mut child_it = WalkDir::new(parent_path)
+                            .max_depth(1)
+                            .sort_by(sort_by_dir_and_name)
+                            .into_iter();
+
+                        while let Some(Ok(child_entry)) = child_it.next() {
+                            if child_entry.path() == parent_path {
+                                continue;
+                            }
+                            // All siblings that come after the current entry will be traversed by
+                            // the root iterator
+                            if child_entry.path() == entry.path() {
+                                break;
+                            }
+                            deep_globable_directories.insert(child_entry.path().to_path_buf());
+                        }
+
+                        break;
                     }
 
                     // If we reached the root, then we can stop.
