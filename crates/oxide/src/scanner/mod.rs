@@ -190,14 +190,9 @@ impl Scanner {
         self.scan_sources();
 
         for source in self.sources.iter() {
+            // TODO: Make sure `SourceEntry::IgnoredAuto` is ignored maybe?
+            // TODO: Make sure `SourceEntry::Pattern` is included maybe?
             if let SourceEntry::Auto { base } = source {
-                // Insert a glob for the base path, so we can see new files/folders in the
-                // directory itself.
-                self.globs.push(GlobEntry {
-                    base: base.to_string_lossy().into(),
-                    pattern: "*".into(),
-                });
-
                 let globs = resolve_globs((base).to_path_buf(), &self.dirs);
                 self.globs.extend(globs);
             }
