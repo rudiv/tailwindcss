@@ -638,10 +638,10 @@ mod scanner {
     fn it_should_ignore_negated_custom_sources() {
         let (paths, candidates) = scan_with_globs(
             &[
-                // ("src/index.ts", "content-['src/index.ts']"),
-                // ("src/colors/red.jsx", "content-['src/colors/red.jsx']"),
-                // ("src/colors/blue.tsx", "content-['src/colors/blue.tsx']"),
-                // ("src/colors/green.tsx", "content-['src/colors/green.tsx']"),
+                ("src/index.ts", "content-['src/index.ts']"),
+                ("src/colors/red.jsx", "content-['src/colors/red.jsx']"),
+                ("src/colors/blue.tsx", "content-['src/colors/blue.tsx']"),
+                ("src/colors/green.tsx", "content-['src/colors/green.tsx']"),
                 ("src/utils/string.ts", "content-['src/utils/string.ts']"),
                 ("src/utils/date.ts", "content-['src/utils/date.ts']"),
                 ("src/utils/file.ts", "content-['src/utils/file.ts']"),
@@ -653,13 +653,12 @@ mod scanner {
                     "src/templates/index.html",
                     "content-['src/templates/index.html']",
                 ),
-                // ("dist/out.html", "content-['dist/out.html']"),
             ],
             vec![
-                // "@source not 'src/index.ts'",
-                // "@source not '**/*.{jsx,tsx}'",
+                "@source not 'src/index.ts'",
+                "@source not '**/*.{jsx,tsx}'",
                 "@source not 'src/utils'",
-                // "@source not 'dist'",
+                "@source not 'dist'",
             ],
         );
 
