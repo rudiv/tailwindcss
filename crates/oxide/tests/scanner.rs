@@ -795,6 +795,27 @@ mod scanner {
     }
 
     #[test]
+    fn it_respects_gitignore_in_workspace_root() {
+        let ScanResult {
+            candidates,
+            files,
+            globs,
+        } = scan_with_globs(
+            &[
+                (".gitignore", "ignore.html"),
+                ("web/index.html", "content-['web/index.html']"),
+                ("web/ignore.html", "content-['web/ignore.html']"),
+            ],
+            vec!["@source './web'"],
+        );
+
+        assert_eq!(candidates, vec!["content-['web/index.html']",]);
+
+        assert_eq!(files, vec!["web/index.html",]);
+        assert_eq!(globs, vec!["web/*",]);
+    }
+
+    #[test]
     fn skips_ignore_files_outside_of_a_repo() {
         // Create a temporary working directory
         let dir = tempdir().unwrap().into_path();
