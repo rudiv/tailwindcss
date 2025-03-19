@@ -665,7 +665,7 @@ test(
         /* (4) */
         /* - './pages' should be auto-scanned */
         /* - Only '.html' files should be included */
-        /* - './page/ignored.html' should be ignored */
+        /* - './page/ignored.html' will not be ignored because of the specific pattern */
         @source "./pages/**/*.html";
       `,
 
@@ -702,7 +702,7 @@ test(
       // (4)
       'pages/foo.html': 'content-["pages/foo.html"]',
       'pages/nested/foo.html': 'content-["pages/nested/foo.html"]',
-      'pages/ignored.html': 'content-["pages/ignored.html"] content-["BAD"]',
+      'pages/ignored.html': 'content-["pages/ignored.html"]',
       'pages/foo.jsx': 'content-["pages/foo.jsx"] content-["BAD"]',
       'pages/nested/foo.jsx': 'content-["pages/nested/foo.jsx"] content-["BAD"]',
     },
@@ -733,6 +733,10 @@ test(
         --tw-content: "pages/foo.html";
         content: var(--tw-content);
       }
+      .content-\\[\\"pages\\/ignored\\.html\\"\\] {
+        --tw-content: "pages/ignored.html";
+        content: var(--tw-content);
+      }
       .content-\\[\\"pages\\/nested\\/foo\\.html\\"\\] {
         --tw-content: "pages/nested/foo.html";
         content: var(--tw-content);
@@ -755,7 +759,7 @@ test(
   },
 )
 
-test(
+test.only(
   'auto source detection in depth, source(…) and `@source` can be configured to use auto source detection (build + watch mode)',
   {
     fs: {
@@ -893,10 +897,11 @@ test(
         bar.html
       `,
 
-      // Project D, foo.html is ignored by the gitignore file.
+      // Project D, foo.html is ignored by the gitignore file but the source rule is explicit about
+      // adding all `.html` files.
       'project-d/src/foo.html': html`
         <div
-          class="content-['SHOULD-NOT-EXIST-IN-OUTPUT'] content-['project-d/src/foo.html']"
+          class="content-['project-d/src/foo.html']"
         ></div>
       `,
 
@@ -969,6 +974,10 @@ test(
       }
       .content-\\[\\'project-d\\/src\\/bar\\.html\\'\\] {
         --tw-content: 'project-d/src/bar.html';
+        content: var(--tw-content);
+      }
+      .content-\\[\\'project-d\\/src\\/foo\\.html\\'\\] {
+        --tw-content: 'project-d/src/foo.html';
         content: var(--tw-content);
       }
       .content-\\[\\'project-d\\/src\\/index\\.html\\'\\] {
@@ -1119,7 +1128,7 @@ test(
   },
 )
 
-test.only(
+test(
   'auto source detection disabled',
   {
     fs: {
@@ -1141,7 +1150,7 @@ test.only(
         /* (2) */
         /* - './pages' should be auto-scanned */
         /* - Only '.html' files should be included */
-        /* - './page/ignored.html' should be ignored */
+        /* - './page/ignored.html' will not be ignored because of the specific pattern */
         @source "./pages/**/*.html";
       `,
 
@@ -1161,7 +1170,7 @@ test.only(
       // (4)
       'pages/foo.html': 'content-["pages/foo.html"]',
       'pages/nested/foo.html': 'content-["pages/nested/foo.html"]',
-      'pages/ignored.html': 'content-["pages/ignored.html"] content-["BAD"]',
+      'pages/ignored.html': 'content-["pages/ignored.html"]',
       'pages/foo.jsx': 'content-["pages/foo.jsx"] content-["BAD"]',
       'pages/nested/foo.jsx': 'content-["pages/nested/foo.jsx"] content-["BAD"]',
     },
@@ -1174,6 +1183,10 @@ test.only(
       --- ./dist/out.css ---
       .content-\\[\\"pages\\/foo\\.html\\"\\] {
         --tw-content: "pages/foo.html";
+        content: var(--tw-content);
+      }
+      .content-\\[\\"pages\\/ignored\\.html\\"\\] {
+        --tw-content: "pages/ignored.html";
         content: var(--tw-content);
       }
       .content-\\[\\"pages\\/nested\\/foo\\.html\\"\\] {

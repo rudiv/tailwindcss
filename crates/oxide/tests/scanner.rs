@@ -53,6 +53,8 @@ mod scanner {
 
         let candidates = scanner.scan();
 
+        dbg!("##########################");
+
         let base_dir =
             format!("{}{}", dunce::canonicalize(&base).unwrap().display(), "/").replace('\\', "/");
 
@@ -810,24 +812,44 @@ mod scanner {
             globs,
         } = scan_with_globs(
             &[
-                (".gitignore", "ignore-1.html\n/web/ignore-2.html"),
+                (".gitignore", "ignore-1.html\nweb/ignore-2.html"),
+                ("src/index.html", "content-['src/index.html']"),
                 ("web/index.html", "content-['web/index.html']"),
                 ("web/ignore-1.html", "content-['web/ignore-1.html']"),
                 ("web/ignore-2.html", "content-['web/ignore-2.html']"),
             ],
-            vec!["@source './web'", "@source './web/ignore-1.html'"],
+            vec!["@source './src'", "@source './web'"],
         );
 
         assert_eq!(
             candidates,
-            vec![
-                "content-['web/ignore-1.html']",
-                "content-['web/index.html']",
-            ]
+            vec!["content-['src/index.html']", "content-['web/index.html']",]
         );
 
-        assert_eq!(files, vec!["web/ignore-1.html", "web/index.html",]);
-        assert_eq!(globs, vec!["web/*",]);
+        assert_eq!(files, vec!["src/index.html", "web/index.html",]);
+        assert_eq!(globs, vec!["src/*", "web/*",]);
+    }
+
+    #[test]
+    fn it_includes_skipped_by_default_extensions_with_a_specific_source() {
+        let ScanResult {
+            candidates,
+            files,
+            globs,
+        } = scan_with_globs(
+            &[
+                ("src/logo.jpg", "content-['/src/logo.jpg']"),
+                ("src/logo.png", "content-['/src/logo.png']"),
+            ],
+            vec!["@source './src/logo.{jpg,png}'"],
+        );
+
+        assert_eq!(
+            candidates,
+            vec!["content-['/src/logo.jpg']", "content-['/src/logo.png']"]
+        );
+        assert_eq!(files, vec!["src/logo.jpg", "src/logo.png"]);
+        assert!(globs.is_empty());
     }
 
     #[test]

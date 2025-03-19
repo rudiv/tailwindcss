@@ -342,7 +342,7 @@ fn parse_all_blobs(blobs: Vec<Vec<u8>>) -> Vec<String> {
 /// haven't changed.
 fn create_walker(sources: Sources) -> Option<WalkBuilder> {
     let mtimes: Arc<Mutex<FxHashMap<PathBuf, SystemTime>>> = Default::default();
-    let mut roots: FxHashSet<&PathBuf> = FxHashSet::default();
+    let mut other_roots: FxHashSet<&PathBuf> = FxHashSet::default();
     let mut first_root: Option<&PathBuf> = None;
     let mut ignores: BTreeMap<&PathBuf, BTreeSet<String>> = Default::default();
 
@@ -354,18 +354,28 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
                 auto_content_roots.insert(base);
                 if first_root.is_none() {
                     first_root = Some(base);
+                } else {
+                    other_roots.insert(base);
                 }
-                roots.insert(base);
             }
             SourceEntry::IgnoredAuto { base } => {
                 ignores.entry(base).or_default().insert("**/*".to_string());
             }
             SourceEntry::Pattern { base, pattern } => {
+                let mut pattern = pattern.to_string();
+
                 if first_root.is_none() {
                     first_root = Some(base);
+                } else {
+                    other_roots.insert(base);
                 }
-                roots.insert(base);
+
                 if !pattern.contains("**") {
+                    // Ensure that the pattern is pinned to the base path.
+                    if !pattern.starts_with("/") {
+                        pattern = format!("/{pattern}");
+                    }
+
                     // Specific patterns should take precedence even over git-ignored files:
                     ignores
                         .entry(base)
@@ -374,7 +384,7 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
                 } else {
                     // Assumption: the pattern we receive will already be brace expanded. So
                     // `*.{html,jsx}` will result in two separate patterns: `*.html` and `*.jsx`.
-                    if let Some(extension) = Path::new(pattern).extension() {
+                    if let Some(extension) = Path::new(&pattern).extension() {
                         // Extend auto source detection to include the extension
                         ignores
                             .entry(base)
@@ -384,10 +394,16 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
                 }
             }
             SourceEntry::IgnoredPattern { base, pattern } => {
-                ignores.entry(base).or_default().insert(pattern.to_string());
+                let mut pattern = pattern.to_string();
+                // Ensure that the pattern is pinned to the base path.
+                if !pattern.starts_with("/") {
+                    pattern = format!("/{pattern}");
+                }
+                ignores.entry(base).or_default().insert(pattern);
             }
         }
     }
+
     let mut builder = WalkBuilder::new(first_root?);
 
     // Scan hidden files / directories
@@ -438,8 +454,7 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
         }
     }
 
-    // Add other roots
-    for root in roots.into_iter() {
+    for root in other_roots {
         builder.add(root);
     }
 
@@ -473,10 +488,20 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
                             }
                         }
                         SourceEntry::Pattern { base, pattern } => {
+                            let mut pattern = pattern.to_string();
+                            // Ensure that the pattern is pinned to the base path.
+                            if !pattern.starts_with("/") {
+                                pattern = format!("/{pattern}");
+                            }
+
                             // Check if path starts with base, if so, remove the prefix and check the remainder against the pattern
                             let remainder = path.strip_prefix(base);
                             if remainder.is_ok_and(|remainder| {
-                                glob_match(pattern, remainder.to_string_lossy().as_bytes())
+                                let mut path_str = remainder.to_string_lossy().to_string();
+                                if !path_str.starts_with("/") {
+                                    path_str = format!("/{path_str}");
+                                }
+                                glob_match(pattern, path_str.as_bytes())
                             }) {
                                 matches = true;
                                 break;
