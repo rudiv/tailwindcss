@@ -49,14 +49,7 @@ mod scanner {
             .map(|str| PublicSourceEntry::from_pattern(base.clone().into(), str))
             .collect();
 
-        // Base source for auto-content detection
-        let mut all_sources = vec![PublicSourceEntry::from_pattern(
-            base.clone().into(),
-            "@source '**/*'",
-        )];
-        all_sources.extend(sources);
-
-        let mut scanner = Scanner::new(all_sources);
+        let mut scanner = Scanner::new(sources);
 
         let candidates = scanner.scan();
 
@@ -90,7 +83,7 @@ mod scanner {
     }
 
     fn scan(paths_with_content: &[(&str, &str)]) -> ScanResult {
-        scan_with_globs(paths_with_content, vec![])
+        scan_with_globs(paths_with_content, vec!["@source '**/*'"])
     }
 
     #[test]
@@ -390,7 +383,7 @@ mod scanner {
     fn it_should_be_possible_to_scan_in_the_parent_directory() {
         let ScanResult { candidates, .. } = scan_with_globs(
             &[("foo/bar/baz/foo.html", "content-['foo.html']")],
-            vec!["@source './foo/bar/baz/..'"],
+            vec!["@source '**/*'", "@source './foo/bar/baz/..'"],
         );
 
         assert_eq!(candidates, vec!["content-['foo.html']"]);
@@ -401,7 +394,7 @@ mod scanner {
         // These look like folders, but they are files
         let ScanResult { candidates, .. } = scan_with_globs(
             &[("my-file", "content-['my-file']")],
-            vec!["@source './my-file'"],
+            vec!["@source '**/*'", "@source './my-file'"],
         );
 
         assert_eq!(candidates, vec!["content-['my-file']"]);
@@ -422,6 +415,7 @@ mod scanner {
                 ),
             ],
             vec![
+                "@source '**/*'",
                 "@source './my-folder.templates'",
                 "@source './my-folder.bin'",
             ],
@@ -444,7 +438,7 @@ mod scanner {
                 // detection.
                 ("foo.styl", "content-['foo.styl']"),
             ],
-            vec!["@source '*.styl'"],
+            vec!["@source '**/*'", "@source '*.styl'"],
         );
 
         assert_eq!(candidates, vec!["content-['foo.styl']"]);
@@ -461,7 +455,7 @@ mod scanner {
                 ("app/[[...slug]]/page.styl", "content-['[[...slug]]']"),
                 ("app/(theme)/page.styl", "content-['(theme)']"),
             ],
-            vec!["@source './**/*.{styl}'"],
+            vec!["@source '**/*'", "@source './**/*.{styl}'"],
         );
 
         assert_eq!(
@@ -524,7 +518,7 @@ mod scanner {
                 ("foo.styl", "content-['foo.styl']"),
             ],
             // But explicitly including them should still work
-            vec!["@source 'foo.styl'"],
+            vec!["@source '**/*'", "@source 'foo.styl'"],
         );
 
         assert_eq!(candidates, vec!["content-['foo.styl']"]);
@@ -686,6 +680,7 @@ mod scanner {
                 ),
             ],
             vec![
+                "@source '**/*'",
                 "@source not 'src/index.ts'",
                 "@source not '**/*.{jsx,tsx}'",
                 "@source not 'src/utils'",
@@ -739,7 +734,7 @@ mod scanner {
             // Typically skipped
             &[("src/index.exe", "content-['src/index.exe']")],
             // But explicitly included
-            vec!["@source '**/*.exe'"],
+            vec!["@source '**/*'", "@source '**/*.exe'"],
         );
 
         assert_eq!(candidates, vec!["content-['src/index.exe']",]);
@@ -754,33 +749,50 @@ mod scanner {
         );
     }
 
-    // #[test]
-    // fn it_should_work() {
-    //     let ScanResult {
-    //         candidates,
-    //         files,
-    //         globs,
-    //     } = scan_with_globs(
-    //         // Typically skipped
-    //         &[(
-    //             "src/node_modules/index.html",
-    //             "content-['src/node_modules/index.html']",
-    //         )],
-    //         // But explicitly included
-    //         vec!["@source 'src/node_modules/*.html'"],
-    //     );
-    //
-    //     assert_eq!(candidates, vec!["content-['src/index.exe']",]);
-    //     assert_eq!(files, vec!["src/index.exe",]);
-    //     assert_eq!(
-    //         globs,
-    //         vec![
-    //             "*",
-    //             // Contains `.exe` in the list
-    //             "src/**/*.{aspx,astro,cjs,cts,eex,erb,exe,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}",
-    //         ]
-    //     );
-    // }
+    #[test]
+    fn it_should_work_with_manual_glob_only() {
+        let ScanResult {
+            candidates,
+            files,
+            globs,
+        } = scan_with_globs(
+            &[
+                ("index.html", "content-['index.html']"),
+                ("src/index.html", "content-['src/index.html']"),
+                ("src/ignore.html", "content-['src/ignore.html']"),
+                ("src/admin/index.html", "content-['src/admin/index.html']"),
+                ("src/admin/ignore.html", "content-['src/admin/ignore.html']"),
+                (
+                    "src/dashboard/index.html",
+                    "content-['src/dashboard/index.html']",
+                ),
+                (
+                    "src/dashboard/ignore.html",
+                    "content-['src/dashboard/ignore.html']",
+                ),
+                ("src/lib.ts", "content-['src/lib.ts']"),
+            ],
+            vec![
+                "@source './src/**/*.html'",
+                "@source not './src/index.html'",
+                "@source not './src/**/ignore.html'",
+            ],
+        );
+
+        assert_eq!(
+            candidates,
+            vec![
+                "content-['src/admin/index.html']",
+                "content-['src/dashboard/index.html']",
+            ]
+        );
+
+        assert_eq!(
+            files,
+            vec!["src/admin/index.html", "src/dashboard/index.html",]
+        );
+        assert_eq!(globs, vec!["src/**/*.html",]);
+    }
 
     #[test]
     fn skips_ignore_files_outside_of_a_repo() {

@@ -67,11 +67,16 @@ pub fn optimize_public_source_entry(source: &mut PublicSourceEntry) {
                     .unwrap()
                     .to_string_lossy()
                     .to_string();
-                source.pattern = resolved_path
-                    .file_name()
-                    .unwrap()
-                    .to_string_lossy()
-                    .to_string();
+                // Ensure leading slash, otherwise it will match against all files in all folders/
+                source.pattern = format!(
+                    "/{}",
+                    resolved_path
+                        .file_name()
+                        .unwrap()
+                        .to_string_lossy()
+                        .to_string()
+                );
+
                 return;
             }
         }

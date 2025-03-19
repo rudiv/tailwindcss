@@ -10,6 +10,7 @@ use crate::scanner::sources::{
 };
 use crate::GlobEntry;
 use bstr::ByteSlice;
+use fast_glob::glob_match;
 use fxhash::{FxHashMap, FxHashSet};
 use ignore::{gitignore::GitignoreBuilder, WalkBuilder};
 use rayon::prelude::*;
@@ -191,11 +192,14 @@ impl Scanner {
         self.scan_sources();
 
         for source in self.sources.iter() {
-            // TODO: Make sure `SourceEntry::IgnoredAuto` is ignored maybe?
-            // TODO: Make sure `SourceEntry::Pattern` is included maybe?
             if let SourceEntry::Auto { base } = source {
                 let globs = resolve_globs((base).to_path_buf(), &self.dirs, &self.extensions);
                 self.globs.extend(globs);
+            } else if let SourceEntry::Pattern { base, pattern } = source {
+                self.globs.push(GlobEntry {
+                    base: base.to_string_lossy().to_string(),
+                    pattern: pattern.to_string(),
+                });
             }
         }
 
@@ -371,9 +375,7 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
             }
         }
     }
-
-    let mut roots = roots.into_iter();
-
+    dbg!(first_root?, &ignores);
     let mut builder = WalkBuilder::new(first_root?);
 
     // Scan hidden files / directories
@@ -425,7 +427,7 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
     }
 
     // Add other roots
-    for root in roots {
+    for root in roots.into_iter() {
         builder.add(root);
     }
 
@@ -442,12 +444,44 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
         builder.add_gitignore(ignore);
     }
 
-    // Setup filter based on changed files
     builder.filter_entry({
         move |entry| {
+            let path = entry.path();
+
+            // Ensure the entries are matching any of the provided source patterns (this is
+            // necessary for manual-patterns that can filter the file extension)
+            dbg!(&path);
+            if path.is_file() {
+                let mut matches = false;
+                for source in sources.iter() {
+                    match source {
+                        SourceEntry::Auto { base } => {
+                            if path.starts_with(base) {
+                                matches = true;
+                            }
+                        }
+                        SourceEntry::Pattern { base, pattern } => {
+                            // Check if path starts with base, if so, remove the prefix and check the remainder against the pattern
+                            let remainder = path.strip_prefix(base);
+                            if remainder.is_ok_and(|remainder| {
+                                glob_match(pattern, remainder.to_string_lossy().as_bytes())
+                            }) {
+                                matches = true;
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                if !matches {
+                    return false;
+                }
+            }
+
+            // Setup filter based on changed files
             let mut mtimes = mtimes.lock().unwrap();
-            let current_time = match mtimes.get(entry.path()) {
-                Some(time) if entry.path().is_dir() => {
+            let current_time = match mtimes.get(path) {
+                Some(time) if path.is_dir() => {
                     // The `modified()` time will not change on the current directory, if a file in
                     // a sub-directory has changed.
                     //
@@ -460,7 +494,7 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
                     //                          time of `dir-1`. So we need to compute the actual
                     //                          time.
                     // ```
-                    match changed_time_since(entry.path(), *time) {
+                    match changed_time_since(path, *time) {
                         Ok(time) => time,
                         Err(_) => SystemTime::now(),
                     }
