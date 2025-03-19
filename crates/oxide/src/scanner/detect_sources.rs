@@ -120,18 +120,6 @@ pub fn resolve_globs(
         it.skip_current_dir();
     }
 
-    //       // Handle allowed content paths
-    //       // if is_allowed_content_path(entry.path())
-    //       //     && allowed_paths.contains(&entry.path().to_path_buf())
-    //       // {
-    //       //     let path = entry.path();
-    //       //
-    //       //     // Collect the extension for future use when building globs.
-    //       //     if let Some(extension) = path.extension().and_then(|x| x.to_str()) {
-    //       //         found_extensions.insert(extension.to_string());
-    //       //     }
-    //       // }
-
     let mut extension_list = found_extensions.clone().into_iter().collect::<Vec<_>>();
 
     extension_list.sort();

@@ -732,19 +732,27 @@ mod scanner {
             globs,
         } = scan_with_globs(
             // Typically skipped
-            &[("src/index.exe", "content-['src/index.exe']")],
+            &[
+                ("src/index.exe", "content-['src/index.exe']"),
+                ("src/index.bin", "content-['src/index.bin']"),
+                ("out/out.exe", "content-['out/out.exe']"),
+            ],
             // But explicitly included
-            vec!["@source '**/*'", "@source '**/*.{exe,bin}'"],
+            vec!["@source '**/*'", "@source 'src/**/*.{exe,bin}'"],
         );
 
-        assert_eq!(candidates, vec!["content-['src/index.exe']",]);
-        assert_eq!(files, vec!["src/index.exe",]);
+        assert_eq!(
+            candidates,
+            vec!["content-['src/index.bin']", "content-['src/index.exe']",]
+        );
+        assert_eq!(files, vec!["src/index.bin", "src/index.exe",]);
         assert_eq!(
             globs,
             vec![
                 "*",
-                // Contains `.exe` in the list
-                "src/**/*.{aspx,astro,cjs,cts,eex,erb,exe,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}",
+                // Contains `.exe` and `.bin` in the list
+                "out/**/*.{aspx,astro,bin,cjs,cts,eex,erb,exe,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}",
+                "src/{**/*.bin,**/*.exe,**/*.{aspx,astro,bin,cjs,cts,eex,erb,exe,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}}",
             ]
         );
     }
