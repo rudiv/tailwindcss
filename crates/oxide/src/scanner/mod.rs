@@ -447,7 +447,6 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
     builder.add_gitignore(auto_source_detection::RULES.clone());
 
     // Setup ignores based on `@source` definitions
-    dbg!(&ignores);
     for (base, patterns) in ignores {
         let mut ignore_builder = GitignoreBuilder::new(base);
         for pattern in patterns {

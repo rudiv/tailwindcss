@@ -725,7 +725,7 @@ mod scanner {
     }
 
     #[test]
-    fn it_should_include_explicitly_defined_extensions_that_are_ignored_by_default() {
+    fn it_should_include_defined_extensions_that_are_ignored_by_default() {
         let ScanResult {
             candidates,
             files,
@@ -843,7 +843,7 @@ mod scanner {
                 ("web/ignore-1.html", "content-['web/ignore-1.html']"),
                 ("web/ignore-2.html", "content-['web/ignore-2.html']"),
             ],
-            vec!["@source './web/**/*.html'", "@source './web/ignore-1.html'"],
+            vec!["@source './web'", "@source './web/ignore-1.html'"],
         );
         assert_eq!(
             candidates,
@@ -854,7 +854,7 @@ mod scanner {
         );
 
         assert_eq!(files, vec!["web/ignore-1.html", "web/index.html",]);
-        assert_eq!(globs, vec!["web/**/*.html",]);
+        assert_eq!(globs, vec!["web/*",]);
     }
 
     #[test]
