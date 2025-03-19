@@ -734,7 +734,7 @@ mod scanner {
             // Typically skipped
             &[("src/index.exe", "content-['src/index.exe']")],
             // But explicitly included
-            vec!["@source '**/*'", "@source '**/*.exe'"],
+            vec!["@source '**/*'", "@source '**/*.{exe,bin}'"],
         );
 
         assert_eq!(candidates, vec!["content-['src/index.exe']",]);
@@ -802,17 +802,51 @@ mod scanner {
             globs,
         } = scan_with_globs(
             &[
-                (".gitignore", "ignore.html"),
+                (".gitignore", "ignore-1.html\n/web/ignore-2.html"),
                 ("web/index.html", "content-['web/index.html']"),
-                ("web/ignore.html", "content-['web/ignore.html']"),
+                ("web/ignore-1.html", "content-['web/ignore-1.html']"),
+                ("web/ignore-2.html", "content-['web/ignore-2.html']"),
             ],
-            vec!["@source './web'"],
+            vec!["@source './web'", "@source './web/ignore-1.html'"],
         );
 
-        assert_eq!(candidates, vec!["content-['web/index.html']",]);
+        assert_eq!(
+            candidates,
+            vec![
+                "content-['web/ignore-1.html']",
+                "content-['web/index.html']",
+            ]
+        );
 
-        assert_eq!(files, vec!["web/index.html",]);
+        assert_eq!(files, vec!["web/ignore-1.html", "web/index.html",]);
         assert_eq!(globs, vec!["web/*",]);
+    }
+
+    #[test]
+    fn it_respects_gitignore_in_workspace_root_for_manual_globs() {
+        let ScanResult {
+            candidates,
+            files,
+            globs,
+        } = scan_with_globs(
+            &[
+                (".gitignore", "ignore-1.html\n/web/ignore-2.html"),
+                ("web/index.html", "content-['web/index.html']"),
+                ("web/ignore-1.html", "content-['web/ignore-1.html']"),
+                ("web/ignore-2.html", "content-['web/ignore-2.html']"),
+            ],
+            vec!["@source './web/**/*.html'", "@source './web/ignore-1.html'"],
+        );
+        assert_eq!(
+            candidates,
+            vec![
+                "content-['web/ignore-1.html']",
+                "content-['web/index.html']",
+            ]
+        );
+
+        assert_eq!(files, vec!["web/ignore-1.html", "web/index.html",]);
+        assert_eq!(globs, vec!["web/**/*.html",]);
     }
 
     #[test]

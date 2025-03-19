@@ -365,17 +365,21 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
                     first_root = Some(base);
                 }
                 roots.insert(base);
-                ignores
-                    .entry(base)
-                    .or_default()
-                    .insert(format!("!{}", pattern));
+                if !pattern.contains("**") {
+                    ignores
+                        .entry(base)
+                        .or_default()
+                        .insert(format!("!{}", pattern));
+                } else {
+                    let extension = pattern.split('*').next().unwrap_or("");
+                    dbg!(&extension);
+                }
             }
             SourceEntry::IgnoredPattern { base, pattern } => {
                 ignores.entry(base).or_default().insert(pattern.to_string());
             }
         }
     }
-    dbg!(first_root?, &ignores);
     let mut builder = WalkBuilder::new(first_root?);
 
     // Scan hidden files / directories
@@ -435,6 +439,7 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
     builder.add_gitignore(auto_source_detection::RULES.clone());
 
     // Setup ignores based on `@source` definitions
+    dbg!(&ignores);
     for (base, patterns) in ignores {
         let mut ignore_builder = GitignoreBuilder::new(base);
         for pattern in patterns {
@@ -450,7 +455,6 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
 
             // Ensure the entries are matching any of the provided source patterns (this is
             // necessary for manual-patterns that can filter the file extension)
-            dbg!(&path);
             if path.is_file() {
                 let mut matches = false;
                 for source in sources.iter() {
@@ -458,6 +462,7 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
                         SourceEntry::Auto { base } => {
                             if path.starts_with(base) {
                                 matches = true;
+                                break;
                             }
                         }
                         SourceEntry::Pattern { base, pattern } => {
@@ -467,6 +472,7 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
                                 glob_match(pattern, remainder.to_string_lossy().as_bytes())
                             }) {
                                 matches = true;
+                                break;
                             }
                         }
                         _ => {}

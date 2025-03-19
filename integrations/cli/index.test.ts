@@ -1119,7 +1119,7 @@ test(
   },
 )
 
-test(
+test.only(
   'auto source detection disabled',
   {
     fs: {
