@@ -371,8 +371,15 @@ fn create_walker(sources: Sources) -> Option<WalkBuilder> {
                         .or_default()
                         .insert(format!("!{}", pattern));
                 } else {
-                    let extension = pattern.split('*').next().unwrap_or("");
-                    dbg!(&extension);
+                    // Assumption: the  pattern we receive will already be brace expanded. So
+                    // `*.{html,jsx}` will result in two separate patterns: `*.html` and `*.jsx`.
+                    if let Some(extension) = Path::new(pattern).extension() {
+                        // Extend auto source detection to include the extension
+                        ignores
+                            .entry(base)
+                            .or_default()
+                            .insert(format!("!*.{}", extension.to_string_lossy()));
+                    }
                 }
             }
             SourceEntry::IgnoredPattern { base, pattern } => {
