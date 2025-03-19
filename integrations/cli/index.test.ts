@@ -1135,9 +1135,7 @@ test(
         @reference 'tailwindcss/theme';
 
         /* (1) */
-        /* - Only './src' should be auto-scanned, not the current working directory */
-        /* - .gitignore'd paths should be ignored (node_modules) */
-        /* - Binary extensions should be ignored (jpg, zip) */
+        /* - Disable auto-source detection */
         @import 'tailwindcss/utilities' source(none);
 
         /* (2) */
