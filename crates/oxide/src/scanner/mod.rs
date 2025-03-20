@@ -189,24 +189,22 @@ impl Scanner {
 
     #[tracing::instrument(skip_all)]
     pub fn get_globs(&mut self) -> Vec<GlobEntry> {
-        self.scan_sources();
-
-        for source in self.sources.iter() {
-            if let SourceEntry::Auto { base } = source {
-                let globs = resolve_globs((base).to_path_buf(), &self.dirs, &self.extensions);
-                self.globs.extend(globs);
-            } else if let SourceEntry::Pattern { base, pattern } = source {
-                self.globs.push(GlobEntry {
+        self.sources
+            .iter()
+            .filter_map(|source| match source {
+                SourceEntry::Auto { base } => Some(GlobEntry {
+                    base: base.to_string_lossy().to_string(),
+                    pattern: "**/*".to_string(),
+                }),
+                SourceEntry::Pattern { base, pattern } => Some(GlobEntry {
                     base: base.to_string_lossy().to_string(),
                     pattern: pattern.to_string(),
-                });
-            }
-        }
+                }),
+                _ => None,
+            })
+            .collect()
 
-        // Re-optimize the globs to reduce the number of patterns we have to scan.
-        self.globs = optimize_patterns(&self.globs);
-
-        self.globs.clone()
+        // TODO: Port the `resolve_globs()` logic to the PostCSS client
     }
 
     #[tracing::instrument(skip_all)]
