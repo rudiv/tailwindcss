@@ -11,6 +11,7 @@ mod scanner {
     struct ScanResult {
         files: Vec<String>,
         globs: Vec<String>,
+        normalized_sources: Vec<String>,
         candidates: Vec<String>,
     }
 
@@ -69,15 +70,38 @@ mod scanner {
         let mut globs = scanner
             .get_globs()
             .iter()
-            .map(|glob| format!("{}{}{}", glob.base, "/", glob.pattern))
+            .map(|glob| {
+                if glob.pattern.starts_with('/') {
+                    format!("{}{}", glob.base, glob.pattern)
+                } else {
+                    format!("{}/{}", glob.base, glob.pattern)
+                }
+            })
             // Normalize paths to use unix style separators
             .map(|file| file.replace('\\', "/").replace(&base_dir, ""))
             .collect::<Vec<_>>();
         globs.sort();
 
+        // Get all normalized sources as strings relative to the base directory
+        let mut normalized_sources = scanner
+            .get_normalized_sources()
+            .iter()
+            .map(|glob| {
+                if glob.pattern.starts_with('/') {
+                    format!("{}{}", glob.base, glob.pattern)
+                } else {
+                    format!("{}/{}", glob.base, glob.pattern)
+                }
+            })
+            // Normalize paths to use unix style separators
+            .map(|file| file.replace('\\', "/").replace(&base_dir, ""))
+            .collect::<Vec<_>>();
+        normalized_sources.sort();
+
         ScanResult {
             files,
             globs,
+            normalized_sources,
             candidates,
         }
     }
@@ -88,7 +112,12 @@ mod scanner {
 
     #[test]
     fn it_should_work_with_a_set_of_root_files() {
-        let ScanResult { files, globs, .. } = scan(&[
+        let ScanResult {
+            files,
+            globs,
+            normalized_sources,
+            ..
+        } = scan(&[
             ("index.html", ""),
             ("a.html", ""),
             ("b.html", ""),
@@ -96,11 +125,17 @@ mod scanner {
         ]);
         assert_eq!(files, vec!["a.html", "b.html", "c.html", "index.html"]);
         assert_eq!(globs, vec!["*"]);
+        assert_eq!(normalized_sources, vec!["**/*"]);
     }
 
     #[test]
     fn it_should_work_with_a_set_of_root_files_and_ignore_ignored_files() {
-        let ScanResult { files, globs, .. } = scan(&[
+        let ScanResult {
+            files,
+            globs,
+            normalized_sources,
+            ..
+        } = scan(&[
             (".gitignore", "b.html"),
             ("index.html", ""),
             ("a.html", ""),
@@ -109,11 +144,17 @@ mod scanner {
         ]);
         assert_eq!(files, vec!["a.html", "c.html", "index.html"]);
         assert_eq!(globs, vec!["*"]);
+        assert_eq!(normalized_sources, vec!["**/*"]);
     }
 
     #[test]
     fn it_should_list_all_files_in_the_public_folder_explicitly() {
-        let ScanResult { files, globs, .. } = scan(&[
+        let ScanResult {
+            files,
+            globs,
+            normalized_sources,
+            ..
+        } = scan(&[
             ("index.html", ""),
             ("public/a.html", ""),
             ("public/b.html", ""),
@@ -134,11 +175,17 @@ mod scanner {
             ]
         );
         assert_eq!(globs, vec!["*"]);
+        assert_eq!(normalized_sources, vec!["**/*"]);
     }
 
     #[test]
     fn it_should_list_nested_folders_explicitly_in_the_public_folder() {
-        let ScanResult { files, globs, .. } = scan(&[
+        let ScanResult {
+            files,
+            globs,
+            normalized_sources,
+            ..
+        } = scan(&[
             ("index.html", ""),
             ("public/a.html", ""),
             ("public/b.html", ""),
@@ -165,11 +212,17 @@ mod scanner {
             ]
         );
         assert_eq!(globs, vec!["*",]);
+        assert_eq!(normalized_sources, vec!["**/*"]);
     }
 
     #[test]
     fn it_should_list_all_files_in_the_public_folder_explicitly_except_ignored_files() {
-        let ScanResult { files, globs, .. } = scan(&[
+        let ScanResult {
+            files,
+            globs,
+            normalized_sources,
+            ..
+        } = scan(&[
             (".gitignore", "public/b.html\na.html"),
             ("index.html", ""),
             ("public/a.html", ""),
@@ -179,11 +232,17 @@ mod scanner {
 
         assert_eq!(files, vec!["index.html", "public/c.html",]);
         assert_eq!(globs, vec!["*"]);
+        assert_eq!(normalized_sources, vec!["**/*"]);
     }
 
     #[test]
     fn it_should_use_a_glob_for_top_level_folders() {
-        let ScanResult { files, globs, .. } = scan(&[
+        let ScanResult {
+            files,
+            globs,
+            normalized_sources,
+            ..
+        } = scan(&[
             ("index.html", ""),
             ("src/a.html", ""),
             ("src/b.html", ""),
@@ -198,11 +257,17 @@ mod scanner {
             "*",
             "src/**/*.{aspx,astro,cjs,cts,eex,erb,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}",
         ]);
+        assert_eq!(normalized_sources, vec!["**/*"]);
     }
 
     #[test]
     fn it_should_ignore_binary_files() {
-        let ScanResult { files, globs, .. } = scan(&[
+        let ScanResult {
+            files,
+            globs,
+            normalized_sources,
+            ..
+        } = scan(&[
             ("index.html", ""),
             ("a.mp4", ""),
             ("b.png", ""),
@@ -211,11 +276,17 @@ mod scanner {
 
         assert_eq!(files, vec!["index.html"]);
         assert_eq!(globs, vec!["*"]);
+        assert_eq!(normalized_sources, vec!["**/*"]);
     }
 
     #[test]
     fn it_should_ignore_known_extensions() {
-        let ScanResult { files, globs, .. } = scan(&[
+        let ScanResult {
+            files,
+            globs,
+            normalized_sources,
+            ..
+        } = scan(&[
             ("index.html", ""),
             ("a.css", ""),
             ("b.sass", ""),
@@ -224,19 +295,31 @@ mod scanner {
 
         assert_eq!(files, vec!["index.html"]);
         assert_eq!(globs, vec!["*"]);
+        assert_eq!(normalized_sources, vec!["**/*"]);
     }
 
     #[test]
     fn it_should_find_new_extensions() {
-        let ScanResult { files, globs, .. } = scan(&[("src/index.my-extension", "")]);
+        let ScanResult {
+            files,
+            globs,
+            normalized_sources,
+            ..
+        } = scan(&[("src/index.my-extension", "")]);
 
         assert_eq!(files, vec!["src/index.my-extension"]);
         assert_eq!(globs, vec!["*", "src/**/*.{aspx,astro,cjs,cts,eex,erb,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,my-extension,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}"]);
+        assert_eq!(normalized_sources, vec!["**/*"]);
     }
 
     #[test]
     fn it_should_ignore_known_files() {
-        let ScanResult { files, globs, .. } = scan(&[
+        let ScanResult {
+            files,
+            globs,
+            normalized_sources,
+            ..
+        } = scan(&[
             ("index.html", ""),
             ("package-lock.json", ""),
             ("yarn.lock", ""),
@@ -244,11 +327,17 @@ mod scanner {
 
         assert_eq!(files, vec!["index.html"]);
         assert_eq!(globs, vec!["*"]);
+        assert_eq!(normalized_sources, vec!["**/*"]);
     }
 
     #[test]
     fn it_should_ignore_and_expand_nested_ignored_folders() {
-        let ScanResult { files, globs, .. } = scan(&[
+        let ScanResult {
+            files,
+            globs,
+            normalized_sources,
+            ..
+        } = scan(&[
             // Explicitly listed root files
             ("foo.html", ""),
             ("bar.html", ""),
@@ -333,6 +422,7 @@ mod scanner {
             "nested-d/very/deeply/nested/*/*.{aspx,astro,cjs,cts,eex,erb,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}",
             "nested-d/very/deeply/nested/directory/**/*.{aspx,astro,cjs,cts,eex,erb,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}",
         ]);
+        assert_eq!(normalized_sources, vec!["**/*"]);
     }
 
     #[test]
@@ -341,7 +431,11 @@ mod scanner {
         ignores.push_str("# md:font-bold\n");
         ignores.push_str("foo.html\n");
 
-        let ScanResult { candidates, .. } = scan(&[
+        let ScanResult {
+            candidates,
+            normalized_sources,
+            ..
+        } = scan(&[
             // The gitignore file is used to filter out files but not scanned for candidates
             (".gitignore", &ignores),
             // A file that should definitely be scanned
@@ -377,33 +471,48 @@ mod scanner {
                 "underline"
             ]
         );
+        assert_eq!(normalized_sources, vec!["**/*"]);
     }
 
     #[test]
     fn it_should_be_possible_to_scan_in_the_parent_directory() {
-        let ScanResult { candidates, .. } = scan_with_globs(
+        let ScanResult {
+            candidates,
+            normalized_sources,
+            ..
+        } = scan_with_globs(
             &[("foo/bar/baz/foo.html", "content-['foo.html']")],
             vec!["@source '**/*'", "@source './foo/bar/baz/..'"],
         );
 
         assert_eq!(candidates, vec!["content-['foo.html']"]);
+        assert_eq!(normalized_sources, vec!["**/*", "foo/bar/**/*"]);
     }
 
     #[test]
     fn it_should_scan_files_without_extensions() {
         // These look like folders, but they are files
-        let ScanResult { candidates, .. } = scan_with_globs(
+        let ScanResult {
+            candidates,
+            normalized_sources,
+            ..
+        } = scan_with_globs(
             &[("my-file", "content-['my-file']")],
             vec!["@source '**/*'", "@source './my-file'"],
         );
 
         assert_eq!(candidates, vec!["content-['my-file']"]);
+        assert_eq!(normalized_sources, vec!["**/*", "my-file"]);
     }
 
     #[test]
     fn it_should_scan_folders_with_extensions() {
         // These look like files, but they are folders
-        let ScanResult { candidates, .. } = scan_with_globs(
+        let ScanResult {
+            candidates,
+            normalized_sources,
+            ..
+        } = scan_with_globs(
             &[
                 (
                     "my-folder.templates/foo.html",
@@ -428,11 +537,19 @@ mod scanner {
                 "content-['my-folder.templates/foo.html']",
             ]
         );
+        assert_eq!(
+            normalized_sources,
+            vec!["**/*", "my-folder.bin/**/*", "my-folder.templates/**/*"]
+        );
     }
 
     #[test]
     fn it_should_scan_content_paths() {
-        let ScanResult { candidates, .. } = scan_with_globs(
+        let ScanResult {
+            candidates,
+            normalized_sources,
+            ..
+        } = scan_with_globs(
             &[
                 // We know that `.styl` extensions are ignored, so they are not covered by auto content
                 // detection.
@@ -442,11 +559,16 @@ mod scanner {
         );
 
         assert_eq!(candidates, vec!["content-['foo.styl']"]);
+        assert_eq!(normalized_sources, vec!["**/*", "*.styl"]);
     }
 
     #[test]
     fn it_should_scan_next_dynamic_folders() {
-        let ScanResult { candidates, .. } = scan_with_globs(
+        let ScanResult {
+            candidates,
+            normalized_sources,
+            ..
+        } = scan_with_globs(
             &[
                 // We know that `.styl` extensions are ignored, so they are not covered by auto content
                 // detection.
@@ -467,6 +589,7 @@ mod scanner {
                 "content-['[slug]']",
             ],
         );
+        assert_eq!(normalized_sources, vec!["**/*", "**/*.styl"]);
     }
 
     #[test]
@@ -510,7 +633,11 @@ mod scanner {
 
     #[test]
     fn it_should_scan_content_paths_even_when_they_are_git_ignored() {
-        let ScanResult { candidates, .. } = scan_with_globs(
+        let ScanResult {
+            candidates,
+            normalized_sources,
+            ..
+        } = scan_with_globs(
             &[
                 (".gitignore", "foo.styl"),
                 // We know that `.styl` extensions are ignored, so they are not covered by auto content
@@ -522,6 +649,7 @@ mod scanner {
         );
 
         assert_eq!(candidates, vec!["content-['foo.styl']"]);
+        assert_eq!(normalized_sources, vec!["**/*", "foo.styl"]);
     }
 
     #[test]
@@ -661,6 +789,7 @@ mod scanner {
             candidates,
             files,
             globs,
+            normalized_sources,
         } = scan_with_globs(
             &[
                 ("src/index.ts", "content-['src/index.ts']"),
@@ -722,6 +851,8 @@ mod scanner {
                 "src/templates/**/*.{aspx,astro,cjs,cts,eex,erb,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}",
             ]
         );
+
+        assert_eq!(normalized_sources, vec!["**/*",]);
     }
 
     #[test]
@@ -730,6 +861,7 @@ mod scanner {
             candidates,
             files,
             globs,
+            normalized_sources,
         } = scan_with_globs(
             // Typically skipped
             &[
@@ -755,6 +887,10 @@ mod scanner {
                 "src/{**/*.bin,**/*.exe,**/*.{aspx,astro,bin,cjs,cts,eex,erb,exe,gjs,gts,haml,handlebars,hbs,heex,html,jade,js,jsx,liquid,md,mdx,mjs,mts,mustache,njk,nunjucks,php,pug,py,razor,rb,rhtml,rs,slim,svelte,tpl,ts,tsx,twig,vue}}",
             ]
         );
+        assert_eq!(
+            normalized_sources,
+            vec!["**/*", "src/**/*.bin", "src/**/*.exe"]
+        );
     }
 
     #[test]
@@ -763,6 +899,7 @@ mod scanner {
             candidates,
             files,
             globs,
+            normalized_sources,
         } = scan_with_globs(
             &[
                 ("index.html", "content-['index.html']"),
@@ -799,7 +936,8 @@ mod scanner {
             files,
             vec!["src/admin/index.html", "src/dashboard/index.html",]
         );
-        assert_eq!(globs, vec!["src/**/*.html",]);
+        assert_eq!(globs, vec!["src/**/*.html"]);
+        assert_eq!(normalized_sources, vec!["src/**/*.html"]);
     }
 
     #[test]
@@ -808,6 +946,7 @@ mod scanner {
             candidates,
             files,
             globs,
+            normalized_sources,
         } = scan_with_globs(
             &[
                 (".gitignore", "ignore-1.html\nweb/ignore-2.html"),
@@ -826,6 +965,7 @@ mod scanner {
 
         assert_eq!(files, vec!["src/index.html", "web/index.html",]);
         assert_eq!(globs, vec!["src/*", "web/*",]);
+        assert_eq!(normalized_sources, vec!["src/**/*", "web/**/*",]);
     }
 
     #[test]
@@ -834,6 +974,7 @@ mod scanner {
             candidates,
             files,
             globs,
+            normalized_sources,
         } = scan_with_globs(
             &[
                 ("src/logo.jpg", "content-['/src/logo.jpg']"),
@@ -848,6 +989,7 @@ mod scanner {
         );
         assert_eq!(files, vec!["src/logo.jpg", "src/logo.png"]);
         assert!(globs.is_empty());
+        assert_eq!(normalized_sources, vec!["src/logo.jpg", "src/logo.png"]);
     }
 
     #[test]
@@ -856,6 +998,7 @@ mod scanner {
             candidates,
             files,
             globs,
+            normalized_sources,
         } = scan_with_globs(
             &[
                 (".gitignore", "ignore-1.html\n/web/ignore-2.html"),
@@ -874,7 +1017,8 @@ mod scanner {
         );
 
         assert_eq!(files, vec!["web/ignore-1.html", "web/index.html",]);
-        assert_eq!(globs, vec!["web/*",]);
+        assert_eq!(globs, vec!["web/*"]);
+        assert_eq!(normalized_sources, vec!["web/**/*", "web/ignore-1.html"]);
     }
 
     #[test]

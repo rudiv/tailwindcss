@@ -174,4 +174,14 @@ impl Scanner {
       .map(Into::into)
       .collect()
   }
+
+  #[napi(getter)]
+  pub fn normalized_sources(&mut self) -> Vec<GlobEntry> {
+    self
+      .scanner
+      .get_normalized_sources()
+      .into_iter()
+      .map(Into::into)
+      .collect()
+  }
 }

@@ -453,5 +453,5 @@ function optimizeCss(
 }
 
 function watchDirectories(scanner: Scanner) {
-  return [...new Set(scanner.globs.flatMap((globEntry) => globEntry.base))]
+  return [...new Set(scanner.normalizedSources.flatMap((globEntry) => globEntry.base))]
 }
