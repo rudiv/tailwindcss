@@ -428,6 +428,10 @@ impl Ignore {
             saw_git = saw_git || ig.0.has_git;
         }
         if self.0.opts.parents {
+            // CHANGED: We removed a code path that rewrote the `path` to be relative to
+            // `self.absolute_base()` because it assumed that the every path is inside the base
+            // which is not the case for us as we use `WalkBuilder#add` to add roots outside of the
+            // base.
             for ig in self.parents().skip_while(|ig| !ig.0.is_absolute_parent) {
                 if m_custom_ignore.is_none() {
                     m_custom_ignore =
@@ -442,7 +446,6 @@ impl Ignore {
                             .map(IgnoreMatch::gitignore);
                 }
                 if any_git && !saw_git && m_gi.is_none() {
-                    dbg!(&path);
                     m_gi =
                         ig.0.git_ignore_matcher
                             .matched(&path, is_dir)
@@ -484,6 +487,8 @@ impl Ignore {
             Match::None
         };
 
+        // CHANGE: We added logic to configure an order in which the ignore files are respected and
+        // allowed a whitelist in a later file to overrule a block on an earlier file.
         let order = [
             // Global gitignore
             &m_global,
@@ -522,12 +527,6 @@ impl Ignore {
     /// Returns an iterator over parent ignore matchers, including this one.
     pub(crate) fn parents(&self) -> Parents<'_> {
         Parents(Some(self))
-    }
-
-    /// Returns the first absolute path of the first absolute parent, if
-    /// one exists.
-    fn absolute_base(&self) -> Option<&Path> {
-        self.0.absolute_base.as_ref().map(|p| &***p)
     }
 }
 
@@ -1135,7 +1134,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "This test is not necessary for us and it's fix hallucinates invalid paths"]
     fn absolute_parent_anchored() {
         let td = tmpdir();
         mkdirp(td.path().join(".git"));
@@ -1148,8 +1146,10 @@ mod tests {
         let (ig2, err) = ig1.add_child("src");
         assert!(err.is_none());
 
-        assert!(ig1.matched("llvm", true).is_none());
-        assert!(ig2.matched("llvm", true).is_none());
+        // CHANGED: These test cases do not make sense for us as we never call the Ignore with
+        // relative paths.
+        assert!(ig1.matched("llvm", true).is_ignore());
+        assert!(ig2.matched("llvm", true).is_ignore());
         assert!(ig2.matched("src/llvm", true).is_none());
         assert!(ig2.matched("foo", false).is_ignore());
         assert!(ig2.matched("src/foo", false).is_ignore());

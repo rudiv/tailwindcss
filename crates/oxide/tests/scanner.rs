@@ -53,8 +53,6 @@ mod scanner {
 
         let candidates = scanner.scan();
 
-        dbg!("##########################");
-
         let base_dir =
             format!("{}{}", dunce::canonicalize(&base).unwrap().display(), "/").replace('\\', "/");
 

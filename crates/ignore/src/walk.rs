@@ -666,7 +666,7 @@ impl WalkBuilder {
         errs.into_error_option()
     }
 
-    /// Add a Gitignore to the builder.
+    /// CHANGED: Add a Gitignore to the builder.
     pub fn add_gitignore(&mut self, gi: Gitignore) {
         self.ig_builder.add_ignore(gi);
     }
