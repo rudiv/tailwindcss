@@ -487,7 +487,7 @@ impl Ignore {
             Match::None
         };
 
-        // CHANGE: We added logic to configure an order in which the ignore files are respected and
+        // CHANGED: We added logic to configure an order in which the ignore files are respected and
         // allowed a whitelist in a later file to overrule a block on an earlier file.
         let order = [
             // Global gitignore

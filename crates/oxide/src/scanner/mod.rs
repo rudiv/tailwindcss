@@ -101,6 +101,8 @@ impl Scanner {
     pub fn new(sources: Vec<PublicSourceEntry>) -> Self {
         let sources = Sources::new(public_source_entries_to_private_source_entries(sources));
 
+        dbg!(&sources);
+
         Self {
             sources: sources.clone(),
             walker: create_walker(sources),

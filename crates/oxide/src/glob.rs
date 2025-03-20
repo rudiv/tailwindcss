@@ -52,34 +52,50 @@ pub fn optimize_public_source_entry(source: &mut PublicSourceEntry) {
             PathBuf::from(&source.base).join(&source.pattern)
         };
 
-        // TODO: What to do if the file/folder doesn't exist on disk? Just canonicalize the base
-        // and keep the path as-is?
-        if let Ok(resolved_path) = dunce::canonicalize(combined_path) {
-            if resolved_path.is_dir() {
+        match dunce::canonicalize(combined_path) {
+            Ok(resolved_path) if resolved_path.is_dir() => {
                 source.base = resolved_path.to_string_lossy().to_string();
                 source.pattern = "**/*".to_owned();
-                return;
             }
+            _ => {
+                // Hoist everything up until the last `/`.
 
-            if resolved_path.is_file() {
-                source.base = resolved_path
-                    .parent()
-                    .unwrap()
+                // TODO: Fix this
+                let mut last_slash_position = None;
+                for (i, c) in source.pattern.char_indices() {
+                    if c == '/' {
+                        last_slash_position = Some(i);
+                    }
+                }
+
+                let Some(last_slash_position) = last_slash_position else {
+                    return;
+                };
+                dbg!(last_slash_position, &source.pattern);
+                let base: PathBuf = source.base.clone().into();
+                let base = base
+                    .join(source.pattern[..last_slash_position - 1].to_owned())
                     .to_string_lossy()
                     .to_string();
-                // Ensure leading slash, otherwise it will match against all files in all folders/
-                source.pattern = format!(
-                    "/{}",
-                    resolved_path
-                        .file_name()
-                        .unwrap()
-                        .to_string_lossy()
-                        .to_string()
+                // TODO: If the base does not exist on disk, try removing the last slash and try again.
+                let base = match dunce::canonicalize(&base) {
+                    Ok(base) => base,
+                    Err(err) => {
+                        event!(tracing::Level::ERROR, "Failed to resolve glob: {:?}", err);
+                        return;
+                    }
+                };
+                source.base = base.to_string_lossy().to_string();
+                source.pattern = source.pattern[last_slash_position - 1..].to_owned();
+                dbg!(
+                    "SRCSRC",
+                    &source.pattern[..last_slash_position - 1],
+                    &source.pattern[last_slash_position - 1..]
                 );
-
-                return;
+                dbg!(&source);
             }
         }
+        return;
     }
 
     // Contains dynamic part
